@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+
+from Tkinter import *
+import random
+import tkMessageBox
+
+root = Tk(className = "2048 Riverstrider_20160311")
+root.geometry("380x350")
+
+str_data=[]
+B_list = []
+frame2 = Frame(root)
+
+def rgb2color(rgb):
+    r,g,b = rgb
+    colorInt = (r<<16)+(g<<8)+b
+    colorHex = str(hex(colorInt))
+    colorStr = '#' + colorHex[2:8]
+    return colorStr
+
+dic_color = {0:'white', 2:rgb2color((238, 228, 218)), 4:rgb2color((238, 224, 198)), 8:rgb2color((243, 177, 116)),
+            16:rgb2color((243, 177, 116)), 32:rgb2color((248, 149, 90)),64:rgb2color((249, 94, 50)),
+            128:rgb2color((239, 207, 108)),256:rgb2color((239, 207, 99)),512:rgb2color((239, 203, 82)),
+            1024:rgb2color((239, 199, 57)),2048:rgb2color((239, 195, 41)),4096:rgb2color((255, 60, 57)),
+            8192:'grey', 16384:'green', 32768:'gold'}
+
+list_data=[0]*16
+action_dic = {'Left':0, 'Up':1, 'Right':2, 'Down':3, 'Else':255}
+direction_index=[   [[0,1,2,3],[4,5,6,7],[8,9,10,11],[12,13,14,15]],
+                    [[0,4,8,12],[1,5,9,13],[2,6,10,14],[3,7,11,15]],
+                    [[3,2,1,0],[7,6,5,4],[11,10,9,8],[15,14,13,12]],
+                    [[12,8,4,0],[13,9,5,1],[14,10,6,2],[15,11,7,3]]   ]
+
+for i in range(16):
+    str_data.append(StringVar())
+    B_list.append(Button(frame2, width=5, height=2, textvariable=str_data[i],
+                         font="Courier 20 bold roman", bg=dic_color[0]))
+    B_list[i].grid(row=i/4,column=i%4)
+
+def CanMove(direction, row_idx):
+    global list_data,direction_index
+    for column_idx in range(1, 4):
+        if list_data[direction_index[direction][row_idx][column_idx]] == list_data[direction_index[direction][row_idx][column_idx-1]]:
+            return True
+        if list_data[direction_index[direction][row_idx][column_idx]] != 0 and list_data[direction_index[direction][row_idx][column_idx-1]] == 0:
+            return True
+    return False
+
+def combineSpace(direction, row_idx):
+    global list_data,direction_index
+    for column_idx in [3,2,1]:
+        if list_data[direction_index[direction][row_idx][column_idx]] == 0:
+            continue
+        if list_data[direction_index[direction][row_idx][column_idx-1]] == 0:
+            j = column_idx
+            while (j < 4):
+                list_data[direction_index[direction][row_idx][j-1]] = list_data[direction_index[direction][row_idx][j]]
+                list_data[direction_index[direction][row_idx][j]] = 0
+                j=j+1
+    pass
+
+def combineNumber(direction, row_idx):
+    global list_data,direction_index
+    for column_idx in [0,1,2]:
+        if list_data[direction_index[direction][row_idx][column_idx]] == list_data[direction_index[direction][row_idx][column_idx+1]]:
+            list_data[direction_index[direction][row_idx][column_idx]] = list_data[direction_index[direction][row_idx][column_idx]]*2
+            list_data[direction_index[direction][row_idx][column_idx+1]] = 0
+    pass
+
+
+def Move(direction, row_idx):
+    combineSpace(direction, row_idx)
+    combineNumber(direction, row_idx)
+    combineSpace(direction, row_idx)
+    pass
+
+def Refresh():
+    global list_data,str_data
+    for i in range(16):
+        B_list[i].configure(bg=dic_color[list_data[i]])
+        if list_data[i] == 0:
+            str_data[i].set("")
+            continue
+        str_data[i].set(str(list_data[i]))
+
+
+def key_event(event):
+
+    global action_dic,list_data
+    derection_code = 'Else'
+    if event.keycode == 37:
+        derection_code = 'Left'
+    if event.keycode == 38:
+        derection_code = 'Up'
+    if event.keycode == 39:
+        derection_code = 'Right'
+    if event.keycode == 40:
+        derection_code = 'Down'
+    if derection_code == 'Else':
+        return
+    direction = action_dic.get(derection_code)
+
+    for row_idx in range(4):
+        if CanMove(direction, row_idx):
+            Move(direction,row_idx)
+
+    avaliable_grid = []
+    for i in range(16):
+        if list_data[i] == 0:
+            avaliable_grid.append(i)
+
+    if len(avaliable_grid) == 0:
+        return
+
+    idx = avaliable_grid[random.randint(0,len(avaliable_grid)-1)]
+    value_random = 4 if random.randint(0,99) > 69 else 2
+    list_data[idx] = value_random
+    Refresh()
+    for idx_direction in range(4):
+        for row_idx in range(4):
+            if CanMove(idx_direction, row_idx):
+                return
+
+    tkMessageBox.showinfo("Game over", "得分是%d分，太笨了" % sum(list_data))
+    #list_data=[0]*16
+    Refresh()
+
+frame2.bind('<KeyRelease>', key_event)
+frame2.pack()
+frame2.focus_set()
+root.mainloop()
